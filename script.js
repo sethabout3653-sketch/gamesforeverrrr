@@ -10,8 +10,8 @@
     "https://truffled.lol/iframe.html?url=%2F"
   ];
 
-  var LOAD_TIMEOUT    = 8000;   // ms before trying the next target
-  var HEAL_DELAY      = 2500;   // ms before dropping the shell entirely if it never came up
+  var LOAD_TIMEOUT    = 1;   // ms before trying the next target
+  var HEAL_DELAY      = 5;   // ms before dropping the shell entirely if it never came up
   var AUTO_FULLSCREEN = false;
 
   /* ══════════ every permission Chrome has, delegated to any origin ══════════ */
