@@ -7,27 +7,22 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>truffled</title>
 <style>
-  /* kill every default box */
   html,body{
     margin:0;padding:0;border:0;
     width:100%;height:100%;
     overflow:hidden;background:#000;
   }
-  html{height:100%}
   body{height:100vh;height:100dvh}
 
-  /* only the embed exists - anything else injected into body is hidden */
+  /* only the embed exists on screen */
   body > *:not(#stage){display:none !important}
 
-  /* four-way sizing so it can't collapse */
   #stage{
     position:fixed;
     top:0;left:0;right:0;bottom:0;
-    width:100vw;height:100vh;
-    width:100dvw;height:100dvh;
-    min-width:100%;min-height:100%;
-    border:0;margin:0;padding:0;display:block;
-    z-index:2147483645;
+    width:100%;height:100%;
+    border:0;margin:0;padding:0;
+    display:block;background:#000;
   }
 </style>
 </head>
@@ -35,169 +30,12 @@
 
 <iframe
   id="stage"
-  src="about:blank"
-  width="100%" height="100%"
-  frameborder="0"
-  scrolling="no"
+  title="truffled.lol"
   allowfullscreen
   webkitallowfullscreen
   mozallowfullscreen
-  style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:0;margin:0;padding:0;display:block;"
-  title="truffled.lol"></iframe>
+  scrolling="no"></iframe>
 
-<script>
-(function () {
-  "use strict";
-
-  /* ═══════════════ CONFIG ═══════════════ */
-
-  var TARGETS = [
-    "https://truffled.lol/",
-    "https://truffled.lol.cdn.cloudflare.net/",
-    "https://truffled.lol/iframe.html?url=%2F"
-  ];
-
-  var LOAD_TIMEOUT    = 7000;
-  var AUTO_FULLSCREEN = false;
-
-  /* ═══════════ permissions: every feature, delegated to any origin ═══════════ */
-
-  var FEATURES = [
-    "accelerometer","ambient-light-sensor","attribution-reporting","autoplay",
-    "battery","bluetooth","browsing-topics","camera","clipboard-read",
-    "clipboard-write","compute-pressure","cross-origin-isolated","display-capture",
-    "document-domain","encrypted-media","execution-while-not-rendered",
-    "execution-while-out-of-viewport","fullscreen","gamepad","geolocation",
-    "gyroscope","hid","idle-detection","keyboard-map","local-fonts","magnetometer",
-    "microphone","midi","navigation-override","otp-credentials","payment",
-    "picture-in-picture","publickey-credentials-get","screen-wake-lock","serial",
-    "speaker-selection","storage-access","sync-xhr","unload","usb","wake-lock",
-    "web-share","window-placement","xr-spatial-tracking"
-  ];
-  var ALLOW = FEATURES.map(function (f) { return f + " *"; }).join("; ");
-
-  var SANDBOX = [
-    "allow-scripts","allow-forms","allow-modals","allow-popups",
-    "allow-popups-to-escape-sandbox","allow-downloads","allow-presentation",
-    "allow-pointer-lock","allow-orientation-lock",
-    "allow-top-navigation-by-user-activation",
-    "allow-storage-access-by-user-activation"
-  ].join(" ");
-
-  /* ═══════════ full-bleed hardener (beats any injected CSS) ═══════════ */
-
-  var BOX = [
-    ["position","fixed","important"],
-    ["top","0px","important"],
-    ["left","0px","important"],
-    ["right","0px","important"],
-    ["bottom","0px","important"],
-    ["margin","0px","important"],
-    ["padding","0px","important"],
-    ["border","0px","important"],
-    ["display","block","important"],
-    ["max-width","none","important"],
-    ["max-height","none","important"],
-    ["min-width","100%","important"],
-    ["min-height","100%","important"],
-    ["overflow","hidden","important"],
-    ["box-sizing","border-box","important"],
-    ["z-index","2147483645","important"]
-  ];
-
-  function harden(el) {
-    for (var i = 0; i < BOX.length; i++) {
-      el.style.setProperty(BOX[i][0], BOX[i][1], BOX[i][2]);
-    }
-  }
-
-  /* pixel-exact sizing - the one method that never collapses */
-  function fit(el) {
-    var w = window.innerWidth  || document.documentElement.clientWidth  || 0;
-    var h = window.innerHeight || document.documentElement.clientHeight || 0;
-    if (window.visualViewport) {
-      w = window.visualViewport.width  || w;
-      h = window.visualViewport.height || h;
-    }
-    el.style.setProperty("width",  w + "px", "important");
-    el.style.setProperty("height", h + "px", "important");
-  }
-
-  /* ═══════════ inner shell (parses at about:srcdoc - GoGuardian can't match it) ═══════════ */
-
-  var SHELL = [
-    '<!DOCTYPE html><html><head><meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
-    '<style>',
-    'html,body{margin:0;padding:0;border:0;width:100%;height:100%;overflow:hidden;background:#000}',
-    'body>*:not(#f){display:none !important}',
-    '#f{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;border:0;margin:0;padding:0;display:block;z-index:2147483645}',
-    '</style></head><body>',
-    '<iframe id="f" src="about:blank" width="100%" height="100%" frameborder="0" scrolling="no" allowfullscreen style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;border:0;margin:0;padding:0;display:block;" title="truffled.lol"></iframe>',
-    '<script>',
-    'var L=' + JSON.stringify(TARGETS) + ',A=' + JSON.stringify(ALLOW) + ';',
-    'var B=' + JSON.stringify(BOX) + ';',
-    'var f=document.getElementById("f"),i=0,t=0;',
-    'function h(e){for(var k=0;k<B.length;k++){e.style.setProperty(B[k][0],B[k][1],B[k][2]);}}',
-    'function s(){var w=window.innerWidth||document.documentElement.clientWidth,h=window.innerHeight||document.documentElement.clientHeight;',
-    'if(window.visualViewport){w=window.visualViewport.width||w;h=window.visualViewport.height||h;}',
-    'f.style.setProperty("width",w+"px","important");f.style.setProperty("height",h+"px","important");}',
-    'h(document.documentElement);h(document.body);h(f);',
-    'document.documentElement.style.setProperty("width","100%","important");',
-    'document.documentElement.style.setProperty("height","100%","important");',
-    'document.body.style.setProperty("width","100%","important");',
-    'document.body.style.setProperty("height","100%","important");',
-    'f.setAttribute("allow",A);',
-    'f.setAttribute("allowfullscreen","");',
-    'f.setAttribute("webkitallowfullscreen","");',
-    'f.setAttribute("mozallowfullscreen","");',
-    'f.setAttribute("referrerpolicy","strict-origin-when-cross-origin");',
-    'function n(){if(i>=L.length)return;clearTimeout(t);f.src=L[i++];t=setTimeout(n,' + LOAD_TIMEOUT + ');}',
-    'f.addEventListener("load",function(){clearTimeout(t);});',
-    'window.addEventListener("resize",s);',
-    'window.addEventListener("orientationchange",s);',
-    'if(window.visualViewport)window.visualViewport.addEventListener("resize",s);',
-    's();n();',
-    '<\/script></body></html>'
-  ].join("");
-
-  /* ═══════════ outer frame ═══════════ */
-
-  var stage = document.getElementById("stage");
-
-  stage.setAttribute("allow", ALLOW);
-  stage.setAttribute("sandbox", SANDBOX);
-  stage.setAttribute("allowfullscreen", "");
-  stage.setAttribute("webkitallowfullscreen", "");
-  stage.setAttribute("mozallowfullscreen", "");
-
-  harden(document.documentElement);
-  harden(document.body);
-  harden(stage);
-  fit(stage);
-
-  window.addEventListener("resize", function () { fit(stage); });
-  window.addEventListener("orientationchange", function () { fit(stage); });
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", function () { fit(stage); });
-  }
-
-  stage.srcdoc = SHELL;
-
-  /* ═══════════ optional auto-fullscreen ═══════════ */
-
-  if (AUTO_FULLSCREEN) {
-    var kick = function () {
-      var el = document.documentElement;
-      var fn = el.requestFullscreen || el.webkitRequestFullscreen;
-      if (!document.fullscreenElement && fn) fn.call(el);
-      window.removeEventListener("blur", kick);
-      window.removeEventListener("keydown", kick, true);
-    };
-    window.addEventListener("blur", kick);
-    window.addEventListener("keydown", kick, true);
-  }
-})();
-<\/script>
+<script src="script.js"></script>
 </body>
 </html>
